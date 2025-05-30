@@ -32,7 +32,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Define prompt_toolkit styles dictionary
 PROMPT_STYLE_DICT = {
     "prompt": "fg:yellow",
     "output.model": "fg:green",
@@ -42,7 +41,6 @@ PROMPT_STYLE_DICT = {
     "output.debug": "fg:gray",
 }
 
-# Create Style object from the dictionary
 PROMPT_STYLE_OBJ = Style.from_dict(PROMPT_STYLE_DICT)
 
 # Custom logging handler integrating with prompt_toolkit
@@ -50,7 +48,7 @@ class PromptToolkitLogHandler(logging.Handler):
     def emit(self, record: logging.LogRecord):
         try:
             log_entry = self.format(record)
-            style_class = "output.debug"  # Default
+            style_class = "output.debug"
 
             # Check if it's a captured warning and matches the specific uv cache path
             if record.name == 'py.warnings' and record.levelno == logging.WARNING and '/root/.cache/uv/' in record.getMessage():
@@ -70,7 +68,6 @@ class PromptToolkitLogHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
-# Helper function to set up logging
 def setup_logging(debug: bool = False):
     # Capture warnings issued by the warnings module
     logging.captureWarnings(True)
@@ -81,27 +78,22 @@ def setup_logging(debug: bool = False):
     for handler in root_logger.handlers[:]:
         root_logger.removeHandler(handler)
 
-    # Add our custom handler
     pt_handler = PromptToolkitLogHandler()
     # Basic formatter, showing level, logger name, and message
     formatter = logging.Formatter('[%(levelname)s] %(name)s: %(message)s')
     pt_handler.setFormatter(formatter)
     root_logger.addHandler(pt_handler)
-    # Set logging level based on debug flag
     root_logger.setLevel(logging.DEBUG if debug else logging.INFO)
     # Specifically set httpx/anyio levels if they are too noisy later
     # logging.getLogger("httpx").setLevel(logging.WARNING)
     # logging.getLogger("anyio").setLevel(logging.WARNING)
 
-# Helper to print formatted text using prompt_toolkit
 def print_pt(text: str, style_class: str = ""):
     if style_class:
         print_formatted_text(FormattedText([(f"class:{style_class}", text)]), style=PROMPT_STYLE_OBJ)
     else:
-        # Print with default style if no class specified
         print_formatted_text(text)
 
-# Decorator for retryable async functions
 def retryable(max_retries=5, delay=1, connection_errors=(httpx.ReadError, httpx.WriteError, 
                                                      httpx.RemoteProtocolError, httpx.ConnectError, 
                                                      anyio.ClosedResourceError, ConnectionError)):
@@ -319,7 +311,6 @@ class MCPClient:
                     )
 
                     if function_call.name == "ask":
-                        # get user input
                         print(f"Model (clarification): {function_call.args['question']}")
                         answer = await self.prompt_session.prompt_async(
                             FormattedText([("class:prompt", "User (clarification): ")]),
@@ -334,8 +325,6 @@ class MCPClient:
                         )
 
                 else:
-
-                    # Skip empty parts
                     if len(part.text.strip()) == 0:
                         continue
 
@@ -369,7 +358,6 @@ class MCPClient:
 
         while True:
             try:
-                # Use prompt_async with the Style object
                 query = await self.prompt_session.prompt_async(
                     FormattedText([("class:prompt", "User: ")]),
                     style=PROMPT_STYLE_OBJ
@@ -392,7 +380,6 @@ class MCPClient:
                 break
 
 async def main():
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description='MCP Client')
     parser.add_argument('server_url', help='URL of SSE MCP server (i.e. http://localhost:8080/sse)')
     parser.add_argument('--debug', action='store_true', help='Enable debug logging')
@@ -410,7 +397,6 @@ async def main():
             # print_pt already happens within connect on failure
             sys.exit(1)
         
-        # Use patch_stdout context manager
         with patch_stdout():
             await client.chat_loop()
 
@@ -426,4 +412,4 @@ if __name__ == "__main__":
         # Catch any other unexpected exceptions escaping main
         print_pt(f"\nUnhandled exception occurred: {e}", "output.error")
         import traceback
-        print_pt(traceback.format_exc(), "output.error") # Print stack trace too
+        print_pt(traceback.format_exc(), "output.error")
